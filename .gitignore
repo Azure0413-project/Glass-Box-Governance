@@ -1,0 +1,37 @@
+# =============================================================================
+# .gitignore — IDH EBM Governance Pipeline
+# =============================================================================
+
+# --- R ---
+.Rhistory
+.Rdata
+.RData
+.Rproj.user/
+*.Rproj
+
+# --- Python ---
+__pycache__/
+*.pyc
+.virtualenvs/
+
+# --- Data (too large for version control) ---
+*.fst
+*.joblib
+*.rds
+
+# --- Output directories (generated at runtime) ---
+Exp_*/
+Run_*/
+D:/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Editor ---
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
