@@ -168,11 +168,6 @@ De-identified session-level `.fst` files from three hemodialysis centers
 
 ---
 
-## Change History
-
-See [`docs/CHANGELOG.md`](docs/CHANGELOG.md) for the full record of bug
-fixes and patch merges.
-
 ## License
 
 [To be specified upon publication]
