@@ -16,6 +16,8 @@ EBM_Paper/
 |-- run_all.R                         # Master script: runs modules 01-11 in order
 |-- run_el.R                          # Master script: E/L confirmatory pipeline
 |-- run_03_eonly.R                    # Standalone launcher for E-only IECV tuning
+|-- run_Eonly_update.R                # v3.0.2 E-only alignment update orchestrator
+|-- extract_and_plot.py               # EBM shape function extraction & visualization
 |-- README.md
 |-- .gitignore
 |
@@ -25,6 +27,7 @@ EBM_Paper/
 |   |-- 00_utils_r.R                  #   Shared R functions (metrics, bootstrap, NRI/IDI)
 |   |-- 00_utils_python.R             #   Python/reticulate EBM interface functions
 |   |-- extract_ebm_importance.R      #   Extract feature importance from trained EBMs
+|   |-- compute_kendall_w.R           #   Kendall's W rank stability analysis (Supp S2)
 |
 |-- pipeline/                         # Analysis modules (execute in order)
 |   |-- 01_data_prep.R                #   Data loading & preprocessing      -> Table 1A, Supp S7
@@ -39,6 +42,7 @@ EBM_Paper/
 |   |-- 09_zeroing_comparison.R        #   Zero vs smooth comparison          -> Supp S12, S15
 |   |-- 10_reclassification.R          #   NRI / IDI reclassification         -> Supp S13
 |   |-- 11_figures.R                   #   Publication figures                -> Fig 1-5
+|   |-- verify_eonly_trim.R            #   E+L vs E-only trim-bound sanity check
 |   |
 |   |-- el/                            #   E/L confirmatory sub-pipeline
 |       |-- 04c_el_split_table.R       #     Phase 1: E/L split table
@@ -50,6 +54,7 @@ EBM_Paper/
 |-- docs/                             # Development documentation
     |-- CHANGELOG.md                  #   Bug fix and patch history
     |-- READY_VERSION_NOTES.md        #   Integration notes
+    |-- Supplementary_Information_v3.0.2_updates.md  # v3.0.2 manuscript patches
 ```
 
 ---

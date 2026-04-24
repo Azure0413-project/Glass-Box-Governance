@@ -1,5 +1,5 @@
 # =============================================================================
-# 05_shapeqc.R — Shape Function Post-Hoc QC v3.0
+# 05_shapeqc.R — Shape Function Post-Hoc QC v3.0.2 (E-only alignment)
 # IDH EBM Governance Reproducibility Pipeline
 #
 # Outputs:
@@ -8,7 +8,22 @@
 #   Supp Table S14  — C_core sensitivity across 5 trimming configurations
 #   Fig 3           — Governance quadrant scatter + individual shape overlays
 #
-# Source: consolidated from original analysis scripts
+# Source: consolidated from original Shape Function Post-Hoc QC Analysis
+#
+# ==== v3.0.2 CHANGE (2026-04-17): Strict E-only analytic frame ====
+# Previously, trim bounds (P0.5–P99.5) and discrete-feature checks were
+# computed from the full E+L cohort (lines 148–164 of v3.0). Although this
+# was an analytic-frame choice (L outcomes were never used), it was
+# structurally inconsistent with the pure E-only protocol lock adopted in
+# 03_iecv_ebm.R v3.0 and later modules (08/09/10). This revision aligns
+# 05_shapeqc.R with that frame:
+#   - site_data_cache now loaded via load_site_eonly() (E-cohort only)
+#   - Pooled quantiles for TRIM_CONFIGS (T1–T5) computed on E-only data
+#   - Discrete-feature detection (n_unique < 15) counted on E-only values
+# Expected impact: tier assignments should be numerically near-identical
+#   (removing 25% of sessions has minimal effect on P0.5/P99.5), but the
+#   analytic frame is now internally consistent across all modules.
+#
 # Core logic:
 #   Step 1: Load shape data -> 150-pt common grid projection -> mean-centering
 #   Step 2: C_core (trimmed cross-fold concordance), J (jaggedness), S_seed
@@ -21,7 +36,7 @@
 #  correlations restricted to the trimmed domain"
 # Methods → "Shape jaggedness (J) ... normalized total-variation index"
 #
-# Prerequisites: src("R/00_config.R"); source("00_utils_r.R")
+# Prerequisites: src("R/00_config.R"); src("R/00_utils_r.R")
 #       Requires 03_iecv_ebm.R (needs shape function exports)
 # =============================================================================
 
@@ -38,7 +53,7 @@ HAS_GGREPEL <- requireNamespace("ggrepel", quietly = TRUE)
 
 cat("\n")
 cat(paste(rep("=", 70), collapse = ""), "\n")
-cat("  Module 05: ShapeQC v3.0\n")
+cat("  Module 05: ShapeQC v3.0.2 (E-only analytic frame)\n")
 cat(paste(rep("=", 70), collapse = ""), "\n\n")
 
 # =============================================================================
@@ -78,7 +93,10 @@ FEATURE_RANK_ORDER <- c(
 )
 
 QC_TIMESTAMP <- format(Sys.time(), "%Y_%m_%d_%H_%M_%S")
-QC_OUT <- file.path(RUN_DIR, paste0("ShapeQC_v3.0_", QC_TIMESTAMP))
+# NOTE: keep "ShapeQC_v3.0_" prefix so existing regex matching in
+# 07_posthoc_governance.R and 08_sensitivity_lofo.R still finds this run.
+# The "Eonly" tag disambiguates the analytic frame.
+QC_OUT <- file.path(RUN_DIR, paste0("ShapeQC_v3.0_Eonly_", QC_TIMESTAMP))
 dir.create(QC_OUT, recursive = TRUE, showWarnings = FALSE)
 
 cat(sprintf("  Grid: %d pts | Trim: T3 [P%.1f, P%.1f]\n", G_GRID, TRIM_P_LO*100, TRIM_P_HI*100))
@@ -146,21 +164,31 @@ cont_features <- setdiff(unique(shape_all$feature), BINARY_FEATS)
 cont_features <- cont_features[nzchar(cont_features)]
 
 # Load site data for pooled quantile computation
-# NOTE: Uses the full temporal cohort (E+L) intentionally for trim bound
-# computation. Trim bounds define the clinically plausible feature range
-# (population reference range), not a model-training quantity.
-# This is an analytic-frame choice, not predictive leakage: L-cohort
-# outcomes are never used, and trim quantiles (P0.5–P99.5) are insensitive
-# to the additional 25% of sessions. If reviewers require strict E-only
-# purity, replace the loop below with load_site_eonly() per site.
+# ==== v3.0.2: E-only analytic frame (was E+L in v3.0/v3.0r) ====
+# Trim bounds define the clinically plausible feature range used as the
+# computation domain for C_core. Under the pure E-only protocol lock
+# (03_iecv_ebm.R v3.0), the L-cohort is reserved for confirmatory analysis
+# and must not participate in any tier-assignment computation. Although
+# L-cohort outcomes were never used in previous versions (only feature
+# distributions contributed to trim quantiles), the removal of L-cohort
+# data makes the analytic frame of S3/S14/Table 4A internally consistent
+# with S10 (08_sensitivity_lofo.R), S12 (09_zeroing_comparison.R), and
+# S13 Panel C (10_reclassification.R), all of which already filter to
+# E-only via load_site_eonly().
+# Requires: SESSION_DATE_COL, E_SPLIT_QUANTILE, COHORT_COL from 00_config.R
+#           load_site_eonly() from 00_utils_r.R
 site_data_cache <- list()
 for (s in names(SITE_FILES)) {
   fp <- SITE_FILES[[s]]
   if (!file.exists(fp)) next
-  dt_raw <- read_fst_dt(fp)
-  dt_raw <- apply_compat_rename(dt_raw, COMPAT_RENAME_MAP)
-  site_data_cache[[s]] <- dt_raw
-  cat(sprintf("  %s: %s rows\n", s, format(nrow(dt_raw), big.mark = ",")))
+  dt_e <- tryCatch(load_site_eonly(s, verbose = FALSE),
+                   error = function(e) {
+                     warning(sprintf("load_site_eonly('%s') failed: %s", s, e$message))
+                     NULL
+                   })
+  if (is.null(dt_e)) next
+  site_data_cache[[s]] <- dt_e
+  cat(sprintf("  %s: %s rows (E-only)\n", s, format(nrow(dt_e), big.mark = ",")))
 }
 
 # Build pooled data cache per fold
@@ -560,7 +588,7 @@ fwrite(s3_dt, file.path(QC_OUT, "Supp_S3_Cross_Model_Correlations.csv"))
 
 cat("\n")
 cat(paste(rep("=", 70), collapse = ""), "\n")
-cat("  Module 05 complete.\n")
+cat("  Module 05 complete (v3.0.2 E-only).\n")
 cat(paste(rep("=", 70), collapse = ""), "\n")
 cat(sprintf("  Output: %s\n", QC_OUT))
 cat("  Files: ShapeQC_v3.0_Report.xlsx, Table_4A, Supp_S3, Supp_S14\n")
